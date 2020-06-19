@@ -1,209 +1,184 @@
+import React from 'react'
 import Head from 'next/head'
+import { Formik, Form, Field } from 'formik'
+import {
+  Box,
+  Checkbox,
+  Heading,
+  Input,
+  Button,
+  FormErrorMessage,
+  FormControl,
+  Spinner
+} from '@chakra-ui/core'
+import { withApollo } from '../api/client'
+import { useQuery, useMutation } from '@apollo/react-hooks'
 
-export default function Home() {
+import { getTodo } from '../shared/graphql/queries/todo/getTodo'
+import { AddTodoMutation } from '../shared/graphql/mutation/todo/addTodo'
+import { TodoCompleteMutation } from '../shared/graphql/mutation/todo/editTodoComplete'
+
+// import TodoItems from './todoItems'
+import EditTodoItemModel from './editTodoItemModel'
+import RemoveTodoAlterDialog from './removeTodoAlterDialog'
+import InfiniteScroll from 'react-infinite-scroller'
+
+const Home = () => {
+  const [addTodo] = useMutation(AddTodoMutation)
+  const [todoComplete] = useMutation(TodoCompleteMutation)
+
+  const {
+    loading: todoLoading,
+    error: todoError,
+    data: todoData,
+    refetch: todoRefetch,
+    // networkStatus,
+    fetchMore
+  } = useQuery(getTodo,
+    {
+      // fetchPolicy: 'cache-and-network'
+      variables: { filter: { first: 10 } }
+      // fetchPolicy: 'network-only'
+    }
+  )
+
+  // console.log('loading:', todoLoading)
+  // console.log('network:', networkStatus)
+
+  if (todoLoading) return <Box>loading...</Box>
+  if (todoError) return <Box>Error...</Box>
+  if (!todoData || !todoData.todo) return null
+
+  const validateName = (value) => {
+    return (!value) ? '該選項不可為空！' : ''
+  }
+
+  const editTodoComplete = (e, id) => {
+    todoComplete({
+      variables: {
+        input: {
+          id,
+          isComplete: e.target.checked
+        }
+      }
+    })
+  }
+
+  const {
+    todo: {
+      edges,
+      pageInfo
+    }
+  } = todoData
+
+  const onFetchMore = () => {
+    console.log('edges', todoData)
+    fetchMore({
+      query: getTodo,
+      variables: {
+        first: 2,
+        after: edges ? edges[edges.length - 1].cursor : null
+      },
+      updateQuery: (prev, { fetchMoreResult }) => {
+        console.log('prev', prev)
+        console.log('k', fetchMoreResult)
+        return {
+          ...prev
+          // user: {
+          //   ...prev.user,
+          //   schooluser: {
+          //     ...prev.user.schooluser,
+          //     schoolFeed: {
+          //       ...prev.user.schooluser.schoolFeed,
+          //       pageInfo: {
+          //         ...prev.user.schooluser.schoolFeed.pageInfo,
+          //         ...fetchMoreResult.user.schooluser.schoolFeed.pageInfo
+          //       },
+          //       edges: [
+          //         ...prev.user.schooluser.schoolFeed.edges,
+          //         ...fetchMoreResult.user.schooluser.schoolFeed.edges
+          //       ]
+          //     }
+          //   }
+          // }
+        }
+      }
+    })
+  }
+
   return (
-    <div className="container">
+    <Box>
       <Head>
         <title>Create Next App</title>
-        <link rel="icon" href="/favicon.ico" />
+        <link rel='icon' href='/favicon.ico' />
       </Head>
 
-      <main>
-        <h1 className="title">
-          Welcome to <a href="https://nextjs.org">Next.js!</a>
-        </h1>
-
-        <p className="description">
-          Get started by editing <code>pages/index.js</code>
-        </p>
-
-        <div className="grid">
-          <a href="https://nextjs.org/docs" className="card">
-            <h3>Documentation &rarr;</h3>
-            <p>Find in-depth information about Next.js features and API.</p>
-          </a>
-
-          <a href="https://nextjs.org/learn" className="card">
-            <h3>Learn &rarr;</h3>
-            <p>Learn about Next.js in an interactive course with quizzes!</p>
-          </a>
-
-          <a
-            href="https://github.com/vercel/next.js/tree/master/examples"
-            className="card"
-          >
-            <h3>Examples &rarr;</h3>
-            <p>Discover and deploy boilerplate example Next.js projects.</p>
-          </a>
-
-          <a
-            href="https://vercel.com/import?filter=next.js&utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            className="card"
-          >
-            <h3>Deploy &rarr;</h3>
-            <p>
-              Instantly deploy your Next.js site to a public URL with Vercel.
-            </p>
-          </a>
-        </div>
-      </main>
-
-      <footer>
-        <a
-          href="https://vercel.com?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+      <Box as='div' mx='auto' w='50%' border='1px red solid'>
+        <Heading textAlign='center'>Todo list</Heading>
+        <Formik
+          initialValues={{
+            title: ''
+          }}
+          onSubmit={(values, { setSubmitting }) => {
+            const input = { title: values.title }
+            addTodo({
+              variables: { input }
+            }).then(() => {
+              setSubmitting(false)
+              values.title = ''
+              // todoRefetch({ variables: { input } })
+            })
+          }}
         >
-          Powered by{' '}
-          <img src="/vercel.svg" alt="Vercel Logo" className="logo" />
-        </a>
-      </footer>
+          {({ isSubmitting, values, setFieldValue }) => (
+            <Form>
+              <Field name='title' validate={validateName}>
+                {({ field, form: { touched, errors } }) => (
+                  <FormControl d='flex' isInvalid={errors.title && touched.title}>
+                    <Input {...field} />
+                    <FormErrorMessage>{errors.title}</FormErrorMessage>
+                    <Button variantColor='blue' mx={3} type='submit' isLoading={isSubmitting}>
+                      送出
+                    </Button>
+                  </FormControl>
+                )}
+              </Field>
+            </Form>
+          )}
+        </Formik>
 
-      <style jsx>{`
-        .container {
-          min-height: 100vh;
-          padding: 0 0.5rem;
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-          align-items: center;
-        }
-
-        main {
-          padding: 5rem 0;
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-          align-items: center;
-        }
-
-        footer {
-          width: 100%;
-          height: 100px;
-          border-top: 1px solid #eaeaea;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-        }
-
-        footer img {
-          margin-left: 0.5rem;
-        }
-
-        footer a {
-          display: flex;
-          justify-content: center;
-          align-items: center;
-        }
-
-        a {
-          color: inherit;
-          text-decoration: none;
-        }
-
-        .title a {
-          color: #0070f3;
-          text-decoration: none;
-        }
-
-        .title a:hover,
-        .title a:focus,
-        .title a:active {
-          text-decoration: underline;
-        }
-
-        .title {
-          margin: 0;
-          line-height: 1.15;
-          font-size: 4rem;
-        }
-
-        .title,
-        .description {
-          text-align: center;
-        }
-
-        .description {
-          line-height: 1.5;
-          font-size: 1.5rem;
-        }
-
-        code {
-          background: #fafafa;
-          border-radius: 5px;
-          padding: 0.75rem;
-          font-size: 1.1rem;
-          font-family: Menlo, Monaco, Lucida Console, Liberation Mono,
-            DejaVu Sans Mono, Bitstream Vera Sans Mono, Courier New, monospace;
-        }
-
-        .grid {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-wrap: wrap;
-
-          max-width: 800px;
-          margin-top: 3rem;
-        }
-
-        .card {
-          margin: 1rem;
-          flex-basis: 45%;
-          padding: 1.5rem;
-          text-align: left;
-          color: inherit;
-          text-decoration: none;
-          border: 1px solid #eaeaea;
-          border-radius: 10px;
-          transition: color 0.15s ease, border-color 0.15s ease;
-        }
-
-        .card:hover,
-        .card:focus,
-        .card:active {
-          color: #0070f3;
-          border-color: #0070f3;
-        }
-
-        .card h3 {
-          margin: 0 0 1rem 0;
-          font-size: 1.5rem;
-        }
-
-        .card p {
-          margin: 0;
-          font-size: 1.25rem;
-          line-height: 1.5;
-        }
-
-        .logo {
-          height: 1em;
-        }
-
-        @media (max-width: 600px) {
-          .grid {
-            width: 100%;
-            flex-direction: column;
-          }
-        }
-      `}</style>
-
-      <style jsx global>{`
-        html,
-        body {
-          padding: 0;
-          margin: 0;
-          font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto,
-            Oxygen, Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue,
-            sans-serif;
-        }
-
-        * {
-          box-sizing: border-box;
-        }
-      `}</style>
-    </div>
+        <Box maxH='200px' overflow='auto'>
+          <InfiniteScroll
+            loadMore={onFetchMore}
+            hasMore={!!pageInfo.hasNextPage}
+            // threshold={750}
+            pageStart={0}
+            initialLoad={false}
+            loader={
+              <Box key={0} d='flex' m={3} justifyContent='center'>
+                <Spinner />
+              </Box>
+            }
+          >
+            {edges.map((todo, i) =>
+              <Box key={i}>
+                <Checkbox
+                  defaultIsChecked={todo.node.is_complete}
+                  defaultValue
+                  onChange={e => {
+                    editTodoComplete(e, todo.node.id)
+                  }}
+                  children={todo.node.title}
+                />
+                <EditTodoItemModel todoId={todo.node.id} title={todo.node.title} todoRefetch={todoRefetch} />
+                <RemoveTodoAlterDialog todoId={todo.node.id} todoRefetch={todoRefetch} />
+              </Box>
+            )}
+          </InfiniteScroll>
+        </Box>
+      </Box>
+    </Box>
   )
 }
+
+export default withApollo(Home)
