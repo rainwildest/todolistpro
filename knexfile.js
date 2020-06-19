@@ -19,7 +19,7 @@ module.exports = {
       host: process.env.PGSQL_HOST,
       user: process.env.PGSQL_USER,
       password: process.env.PGSQL_PASSWORD,
-      database: 'school'
+      database: 'todolist'
     },
     pool: {
       min: 2,

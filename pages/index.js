@@ -37,8 +37,8 @@ const Home = () => {
   } = useQuery(getTodo,
     {
       // fetchPolicy: 'cache-and-network'
-      variables: { filter: { first: 10 } }
-      // fetchPolicy: 'network-only'
+      variables: { filter: { first: 10 } },
+      fetchPolicy: 'network-only'
     }
   )
 
@@ -71,37 +71,34 @@ const Home = () => {
     }
   } = todoData
 
+  const posts = edges.map(edge => edge.node)
+
   const onFetchMore = () => {
-    console.log('edges', todoData)
     fetchMore({
       query: getTodo,
       variables: {
-        first: 2,
-        after: edges ? edges[edges.length - 1].cursor : null
+        filter: {
+          first: 2,
+          after: edges ? edges[edges.length - 1].cursor : null
+        }
       },
       updateQuery: (prev, { fetchMoreResult }) => {
-        console.log('prev', prev)
-        console.log('k', fetchMoreResult)
-        return {
-          ...prev
-          // user: {
-          //   ...prev.user,
-          //   schooluser: {
-          //     ...prev.user.schooluser,
-          //     schoolFeed: {
-          //       ...prev.user.schooluser.schoolFeed,
-          //       pageInfo: {
-          //         ...prev.user.schooluser.schoolFeed.pageInfo,
-          //         ...fetchMoreResult.user.schooluser.schoolFeed.pageInfo
-          //       },
-          //       edges: [
-          //         ...prev.user.schooluser.schoolFeed.edges,
-          //         ...fetchMoreResult.user.schooluser.schoolFeed.edges
-          //       ]
-          //     }
-          //   }
-          // }
-        }
+        console.log(
+          {
+            ...prev,
+            todo: {
+              pageInfo: {
+                ...prev.todo.pageInfo,
+                ...fetchMoreResult.todo.pageInfo
+              },
+              edges: [
+                ...prev.todo.edges,
+                ...fetchMoreResult.todo.edges
+              ]
+            }
+          }
+        )
+        return null
       }
     })
   }
@@ -147,13 +144,12 @@ const Home = () => {
           )}
         </Formik>
 
-        <Box maxH='200px' overflow='auto'>
+        <Box maxH='150px' overflow='auto'>
           <InfiniteScroll
+            pageStart={0}
             loadMore={onFetchMore}
             hasMore={!!pageInfo.hasNextPage}
-            // threshold={750}
-            pageStart={0}
-            initialLoad={false}
+            initialLoad
             loader={
               <Box key={0} d='flex' m={3} justifyContent='center'>
                 <Spinner />
@@ -170,8 +166,8 @@ const Home = () => {
                   }}
                   children={todo.node.title}
                 />
-                <EditTodoItemModel todoId={todo.node.id} title={todo.node.title} todoRefetch={todoRefetch} />
-                <RemoveTodoAlterDialog todoId={todo.node.id} todoRefetch={todoRefetch} />
+                {/* <EditTodoItemModel todoId={todo.id} title={todo.title} todoRefetch={todoRefetch} />
+                <RemoveTodoAlterDialog todoId={todo.id} todoRefetch={todoRefetch} /> */}
               </Box>
             )}
           </InfiniteScroll>
