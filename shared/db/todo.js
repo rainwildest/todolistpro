@@ -1,9 +1,11 @@
 const { db: knex } = require('../knex')
 const { v4: uuidv4 } = require('uuid')
 
-const getTodos = async ({ first = 1, after = new Date().toISOString() }) => {
+const getTodos = async ({ first = 1, after }) => {
   return knex('todo')
     .whereNull('delete_at')
+    .andWhere('created_at', '<', new Date(after).toISOString())
+    .orderByRaw('coalesce(created_at) desc')
     .limit(first)
 }
 

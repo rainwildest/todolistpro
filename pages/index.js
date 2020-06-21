@@ -36,12 +36,11 @@ const Home = () => {
     fetchMore
   } = useQuery(getTodo,
     {
-      // fetchPolicy: 'cache-and-network'
-      variables: { filter: { first: 10 } },
-      fetchPolicy: 'network-only'
+      // fetchPolicy: 'cache-and-network',
+      variables: { filter: { first: 2 } }
+      // fetchPolicy: 'network-only'
     }
   )
-
   // console.log('loading:', todoLoading)
   // console.log('network:', networkStatus)
 
@@ -71,8 +70,6 @@ const Home = () => {
     }
   } = todoData
 
-  const posts = edges.map(edge => edge.node)
-
   const onFetchMore = () => {
     fetchMore({
       query: getTodo,
@@ -83,22 +80,20 @@ const Home = () => {
         }
       },
       updateQuery: (prev, { fetchMoreResult }) => {
-        console.log(
-          {
-            ...prev,
-            todo: {
-              pageInfo: {
-                ...prev.todo.pageInfo,
-                ...fetchMoreResult.todo.pageInfo
-              },
-              edges: [
-                ...prev.todo.edges,
-                ...fetchMoreResult.todo.edges
-              ]
-            }
+        return {
+          ...prev,
+          todo: {
+            ...prev.todo,
+            pageInfo: {
+              ...prev.todo.pageInfo,
+              ...fetchMoreResult.todo.pageInfo
+            },
+            edges: [
+              ...prev.todo.edges,
+              ...fetchMoreResult.todo.edges
+            ]
           }
-        )
-        return null
+        }
       }
     })
   }
@@ -143,35 +138,35 @@ const Home = () => {
             </Form>
           )}
         </Formik>
-
-        <Box maxH='150px' overflow='auto'>
-          <InfiniteScroll
-            pageStart={0}
-            loadMore={onFetchMore}
-            hasMore={!!pageInfo.hasNextPage}
-            initialLoad
-            loader={
-              <Box key={0} d='flex' m={3} justifyContent='center'>
-                <Spinner />
-              </Box>
-            }
-          >
-            {edges.map((todo, i) =>
-              <Box key={i}>
-                <Checkbox
-                  defaultIsChecked={todo.node.is_complete}
-                  defaultValue
-                  onChange={e => {
-                    editTodoComplete(e, todo.node.id)
-                  }}
-                  children={todo.node.title}
-                />
-                {/* <EditTodoItemModel todoId={todo.id} title={todo.title} todoRefetch={todoRefetch} />
+      </Box>
+      <Box>
+        <InfiniteScroll
+          pageStart={0}
+          loadMore={onFetchMore}
+          hasMore={!!pageInfo.hasNextPage}
+          // initialLoad={false}
+          loader={
+            <Box key={0} d='flex' m={3} justifyContent='center'>
+              <Spinner />
+            </Box>
+          }
+        >
+          {edges.map((todo, i) =>
+            <Box key={i}>
+              <Checkbox
+                h='100px'
+                defaultIsChecked={todo.node.is_complete}
+                defaultValue
+                onChange={e => {
+                  editTodoComplete(e, todo.node.id)
+                }}
+                children={todo.node.title}
+              />
+              {/* <EditTodoItemModel todoId={todo.id} title={todo.title} todoRefetch={todoRefetch} />
                 <RemoveTodoAlterDialog todoId={todo.id} todoRefetch={todoRefetch} /> */}
-              </Box>
-            )}
-          </InfiniteScroll>
-        </Box>
+            </Box>
+          )}
+        </InfiniteScroll>
       </Box>
     </Box>
   )
