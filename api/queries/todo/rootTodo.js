@@ -7,7 +7,7 @@ export default async (_parent, _args, _context) => {
     first,
     after
   })
-  console.log(after, dbTodo.length, first)
+
   return {
     pageInfo: {
       hasNextPage: dbTodo && dbTodo.length >= first // 返回的資料數如果等於 first(要求拿多少個), 代表有下一版
